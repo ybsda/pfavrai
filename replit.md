@@ -8,6 +8,20 @@ This is a Flask-based camera monitoring system that provides real-time surveilla
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes
+
+### 2025-08-07 - Complete Migration to Replit
+- Successfully migrated complete French camera monitoring system from Windows to Replit
+- Preserved original local authentication system (not Replit Auth as initially planned)
+- Maintained all French interface and functionality
+- Added Windows deployment scripts for easy local deployment:
+  - `install_windows.bat` - Full installation script
+  - `launch_windows.bat` - Standard launch script  
+  - `quick_start.bat` - Rapid deployment script
+  - `start_windows.py` - Simplified Python launcher
+  - `main_windows.py` - Windows-optimized main script
+- Created comprehensive Windows documentation in `README_WINDOWS.md`
+
 ## System Architecture
 
 ### Frontend Architecture

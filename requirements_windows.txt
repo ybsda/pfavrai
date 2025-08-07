@@ -1,0 +1,12 @@
+# Dépendances pour le système de monitoring de caméras - Version Windows
+flask==3.0.0
+flask-sqlalchemy==3.1.1
+flask-login==0.6.3
+werkzeug==3.0.1
+sendgrid==6.12.4
+apscheduler==3.11.0
+requests==2.31.0
+
+# Dépendances additionnelles pour la compatibilité Windows
+python-dotenv==1.0.0
+email-validator==2.1.0
