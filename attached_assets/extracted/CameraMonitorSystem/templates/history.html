@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}Historique - Monitoring Caméras{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h2">
+                <i class="fas fa-history me-2"></i>
+                Historique des connexions
+            </h1>
+            <p class="text-muted">Consulter l'historique complet des pings et connexions</p>
+        </div>
+    </div>
+
+    <!-- Historique des pings -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-list me-2"></i>
+                        Historique des pings
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if historique and historique.items %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Date/Heure</th>
+                                        <th>Équipement</th>
+                                        <th>Client</th>
+                                        <th>Adresse IP</th>
+                                        <th>Statut</th>
+                                        <th>Temps réponse</th>
+                                        <th>Message</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for ping in historique.items %}
+                                        <tr>
+                                            <td>
+                                                <small>{{ ping.timestamp.strftime('%d/%m/%Y') }}</small>
+                                                <br>
+                                                <small class="text-muted">{{ ping.timestamp.strftime('%H:%M:%S') }}</small>
+                                            </td>
+                                            <td>
+                                                <strong>{{ ping.equipement.nom }}</strong>
+                                                <br>
+                                                <small class="text-muted">{{ ping.equipement.type_equipement }}</small>
+                                            </td>
+                                            <td>{{ ping.equipement.client.nom }}</td>
+                                            <td>{{ ping.equipement.adresse_ip }}</td>
+                                            <td>
+                                                {% if ping.statut == 'success' %}
+                                                    <span class="badge bg-success">
+                                                        <i class="fas fa-check me-1"></i>
+                                                        Succès
+                                                    </span>
+                                                {% elif ping.statut == 'timeout' %}
+                                                    <span class="badge bg-warning">
+                                                        <i class="fas fa-clock me-1"></i>
+                                                        Timeout
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">
+                                                        <i class="fas fa-times me-1"></i>
+                                                        Erreur
+                                                    </span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if ping.reponse_ms %}
+                                                    {{ ping.reponse_ms }}ms
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <small>{{ ping.message or '-' }}</small>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination -->
+                        {% if historique.pages > 1 %}
+                            <nav aria-label="Navigation historique">
+                                <ul class="pagination justify-content-center">
+                                    {% if historique.has_prev %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ url_for('historique', page=historique.prev_num) }}">
+                                                <i class="fas fa-chevron-left"></i>
+                                            </a>
+                                        </li>
+                                    {% endif %}
+                                    
+                                    {% for page_num in historique.iter_pages() %}
+                                        {% if page_num %}
+                                            {% if page_num != historique.page %}
+                                                <li class="page-item">
+                                                    <a class="page-link" href="{{ url_for('historique', page=page_num) }}">{{ page_num }}</a>
+                                                </li>
+                                            {% else %}
+                                                <li class="page-item active">
+                                                    <span class="page-link">{{ page_num }}</span>
+                                                </li>
+                                            {% endif %}
+                                        {% else %}
+                                            <li class="page-item disabled">
+                                                <span class="page-link">…</span>
+                                            </li>
+                                        {% endif %}
+                                    {% endfor %}
+                                    
+                                    {% if historique.has_next %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ url_for('historique', page=historique.next_num) }}">
+                                                <i class="fas fa-chevron-right"></i>
+                                            </a>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                            
+                            <div class="text-center text-muted">
+                                <small>
+                                    Page {{ historique.page }} sur {{ historique.pages }} 
+                                    ({{ historique.total }} entrées au total)
+                                </small>
+                            </div>
+                        {% endif %}
+
+                    {% else %}
+                        <div class="text-center text-muted py-5">
+                            <i class="fas fa-history fa-3x mb-3"></i>
+                            <h5>Aucun historique</h5>
+                            <p>Les pings des équipements apparaîtront ici une fois qu'ils commenceront à envoyer des données</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,304 @@
+{% extends "base.html" %}
+
+{% block title %}Tableau de bord - Monitoring Caméras{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h2">
+                <i class="fas fa-tachometer-alt me-2"></i>
+                Tableau de bord
+            </h1>
+            <p class="text-muted">Vue d'ensemble du système de monitoring</p>
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-outline-primary" onclick="rafraichirDonnees()">
+                <i class="fas fa-sync-alt me-1"></i>
+                Actualiser
+            </button>
+        </div>
+    </div>
+
+    <!-- Statistiques principales -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary">
+                <div class="card-body text-center">
+                    <i class="fas fa-users fa-2x mb-2"></i>
+                    <h4>{{ stats.total_clients or 0 }}</h4>
+                    <p class="mb-0">Clients actifs</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info">
+                <div class="card-body text-center">
+                    <i class="fas fa-camera fa-2x mb-2"></i>
+                    <h4>{{ stats.total_equipements or 0 }}</h4>
+                    <p class="mb-0">Équipements total</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success">
+                <div class="card-body text-center">
+                    <i class="fas fa-check-circle fa-2x mb-2"></i>
+                    <h4>{{ stats.equipements_en_ligne or 0 }}</h4>
+                    <p class="mb-0">En ligne</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning">
+                <div class="card-body text-center">
+                    <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                    <h4>{{ stats.alertes_non_lues or 0 }}</h4>
+                    <p class="mb-0">Alertes non lues</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graphiques -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>
+                        Statut des équipements
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="statutChart" width="400" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>
+                        Équipements par client
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="clientChart" width="400" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liste des clients et équipements -->
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-users me-2"></i>
+                        Clients et leurs équipements
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if clients %}
+                        {% for client in clients %}
+                            <div class="mb-3 p-3 border rounded">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <h6 class="mb-1">{{ client.nom }}</h6>
+                                        <small class="text-muted">
+                                            {% if client.adresse %}{{ client.adresse }}{% endif %}
+                                            {% if client.telephone %} • {{ client.telephone }}{% endif %}
+                                        </small>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="badge bg-primary">{{ client.nb_equipements_total }} équipements</span>
+                                        <span class="badge bg-success">{{ client.nb_equipements_en_ligne }} en ligne</span>
+                                        {% if client.nb_equipements_hors_ligne > 0 %}
+                                            <span class="badge bg-danger">{{ client.nb_equipements_hors_ligne }} hors ligne</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                {% if client.equipements %}
+                                    <div class="row">
+                                        {% for equipement in client.equipements[:6] %}
+                                            {% if equipement.actif %}
+                                                <div class="col-md-6 mb-2">
+                                                    <div class="d-flex align-items-center">
+                                                        {% if equipement.est_en_ligne %}
+                                                            <i class="fas fa-circle text-success me-2"></i>
+                                                        {% else %}
+                                                            <i class="fas fa-circle text-danger me-2"></i>
+                                                        {% endif %}
+                                                        <span class="small">{{ equipement.nom }} ({{ equipement.adresse_ip }})</span>
+                                                    </div>
+                                                </div>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center text-muted py-5">
+                            <i class="fas fa-users fa-3x mb-3"></i>
+                            <h5>Aucun client configuré</h5>
+                            <p>Commencez par ajouter un client dans la section Clients</p>
+                            <a href="{{ url_for('clients') }}" class="btn btn-primary">
+                                <i class="fas fa-plus me-1"></i>
+                                Ajouter un client
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-bell me-2"></i>
+                        Dernières alertes
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if dernieres_alertes %}
+                        {% for alerte in dernieres_alertes[:5] %}
+                            <div class="mb-3 p-2 border-start border-{{ 'warning' if alerte.type_alerte == 'hors_ligne' else 'success' }} border-3">
+                                <div class="d-flex justify-content-between">
+                                    <small class="text-muted">{{ alerte.timestamp.strftime('%d/%m %H:%M') }}</small>
+                                    {% if not alerte.lue %}
+                                        <span class="badge bg-warning text-dark">Nouveau</span>
+                                    {% endif %}
+                                </div>
+                                <div class="mt-1">
+                                    <strong>{{ alerte.equipement.nom }}</strong>
+                                    <br>
+                                    <small>{{ alerte.message }}</small>
+                                </div>
+                            </div>
+                        {% endfor %}
+                        <div class="text-center mt-3">
+                            <a href="{{ url_for('alertes') }}" class="btn btn-outline-primary btn-sm">
+                                Voir toutes les alertes
+                            </a>
+                        </div>
+                    {% else %}
+                        <div class="text-center text-muted py-3">
+                            <i class="fas fa-check-circle fa-2x mb-2"></i>
+                            <p class="mb-0">Aucune alerte récente</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Graphique en camembert pour le statut des équipements
+    const statutCtx = document.getElementById('statutChart').getContext('2d');
+    const statutChart = new Chart(statutCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['En ligne', 'Hors ligne'],
+            datasets: [{
+                data: [{{ stats.equipements_en_ligne or 0 }}, {{ stats.equipements_hors_ligne or 0 }}],
+                backgroundColor: ['#28a745', '#dc3545'],
+                borderWidth: 2,
+                borderColor: '#343a40'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        color: '#ffffff',
+                        padding: 20
+                    }
+                }
+            }
+        }
+    });
+
+    // Graphique en barres pour les équipements par client
+    const clientCtx = document.getElementById('clientChart').getContext('2d');
+    const clientChart = new Chart(clientCtx, {
+        type: 'bar',
+        data: {
+            labels: [
+                {% for client in clients[:5] %}
+                    '{{ client.nom }}',
+                {% endfor %}
+            ],
+            datasets: [{
+                label: 'Équipements total',
+                data: [
+                    {% for client in clients[:5] %}
+                        {{ client.nb_equipements_total }},
+                    {% endfor %}
+                ],
+                backgroundColor: '#007bff',
+                borderColor: '#0056b3',
+                borderWidth: 1
+            }, {
+                label: 'En ligne',
+                data: [
+                    {% for client in clients[:5] %}
+                        {{ client.nb_equipements_en_ligne }},
+                    {% endfor %}
+                ],
+                backgroundColor: '#28a745',
+                borderColor: '#1e7e34',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    labels: {
+                        color: '#ffffff'
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        color: '#ffffff'
+                    },
+                    grid: {
+                        color: '#495057'
+                    }
+                },
+                x: {
+                    ticks: {
+                        color: '#ffffff'
+                    },
+                    grid: {
+                        color: '#495057'
+                    }
+                }
+            }
+        }
+    });
+
+    // Fonction pour rafraîchir les données
+    function rafraichirDonnees() {
+        location.reload();
+    }
+
+    // Auto-refresh toutes les 30 secondes
+    setInterval(rafraichirDonnees, 30000);
+</script>
+{% endblock %}

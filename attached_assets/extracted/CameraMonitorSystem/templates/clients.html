@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}Clients - Monitoring Caméras{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h2">
+                <i class="fas fa-users me-2"></i>
+                Gestion des clients
+            </h1>
+            <p class="text-muted">Gérer les clients et leurs informations</p>
+        </div>
+        <div class="col-auto">
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#ajouterClientModal">
+                <i class="fas fa-plus me-1"></i>
+                Ajouter un client
+            </button>
+        </div>
+    </div>
+
+    <!-- Liste des clients -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-list me-2"></i>
+                        Liste des clients
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if clients %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Nom</th>
+                                        <th>Adresse</th>
+                                        <th>Téléphone</th>
+                                        <th>Email</th>
+                                        <th>Équipements</th>
+                                        <th>Statut</th>
+                                        <th>Date création</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for client in clients %}
+                                        <tr>
+                                            <td>
+                                                <strong>{{ client.nom }}</strong>
+                                            </td>
+                                            <td>{{ client.adresse or '-' }}</td>
+                                            <td>{{ client.telephone or '-' }}</td>
+                                            <td>{{ client.email or '-' }}</td>
+                                            <td>
+                                                <span class="badge bg-primary me-1">{{ client.nb_equipements_total }} total</span>
+                                                <span class="badge bg-success me-1">{{ client.nb_equipements_en_ligne }} en ligne</span>
+                                                {% if client.nb_equipements_hors_ligne > 0 %}
+                                                    <span class="badge bg-danger">{{ client.nb_equipements_hors_ligne }} hors ligne</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if client.actif %}
+                                                    <span class="badge bg-success">Actif</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">Inactif</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ client.date_creation.strftime('%d/%m/%Y') }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center text-muted py-5">
+                            <i class="fas fa-users fa-3x mb-3"></i>
+                            <h5>Aucun client</h5>
+                            <p>Commencez par ajouter votre premier client</p>
+                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#ajouterClientModal">
+                                <i class="fas fa-plus me-1"></i>
+                                Ajouter un client
+                            </button>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal pour ajouter un client -->
+<div class="modal fade" id="ajouterClientModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-plus me-2"></i>
+                    Ajouter un nouveau client
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('ajouter_client') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="nom" class="form-label">Nom du client *</label>
+                        <input type="text" class="form-control" id="nom" name="nom" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="adresse" class="form-label">Adresse</label>
+                        <textarea class="form-control" id="adresse" name="adresse" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="telephone" class="form-label">Téléphone</label>
+                        <input type="text" class="form-control" id="telephone" name="telephone">
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>
+                        Enregistrer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

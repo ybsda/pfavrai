@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+
+{% block title %}Clients - Monitoring Caméras{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h2">
+                <i class="fas fa-users me-2"></i>
+                Gestion des clients
+            </h1>
+            <p class="text-muted">Gérer les clients et leurs informations</p>
+        </div>
+        <div class="col-auto">
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#ajouterClientModal">
+                <i class="fas fa-plus me-1"></i>
+                Ajouter un client
+            </button>
+        </div>
+    </div>
+
+    <!-- Liste des clients -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-list me-2"></i>
+                        Liste des clients
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if clients %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Nom</th>
+                                        <th>Adresse</th>
+                                        <th>Contact</th>
+                                        <th>Équipements</th>
+                                        <th>Statut</th>
+                                        <th>Date création</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for client in clients %}
+                                        <tr>
+                                            <td>
+                                                <strong>{{ client.nom }}</strong>
+                                            </td>
+                                            <td>
+                                                {% if client.adresse %}
+                                                    {{ client.adresse }}
+                                                {% else %}
+                                                    <span class="text-muted">Non renseigné</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if client.telephone %}
+                                                    <div><i class="fas fa-phone me-1"></i>{{ client.telephone }}</div>
+                                                {% endif %}
+                                                {% if client.email %}
+                                                    <div><i class="fas fa-envelope me-1"></i>{{ client.email }}</div>
+                                                {% endif %}
+                                                {% if not client.telephone and not client.email %}
+                                                    <span class="text-muted">Non renseigné</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-info">{{ client.nb_equipements_total }} total</span>
+                                                {% if client.nb_equipements_total > 0 %}
+                                                    <br>
+                                                    <small>
+                                                        <span class="badge bg-success">{{ client.nb_equipements_en_ligne }} en ligne</span>
+                                                        <span class="badge bg-danger">{{ client.nb_equipements_hors_ligne }} hors ligne</span>
+                                                    </small>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if client.nb_equipements_total == 0 %}
+                                                    <span class="badge bg-secondary">Aucun équipement</span>
+                                                {% elif client.nb_equipements_hors_ligne == 0 %}
+                                                    <span class="badge bg-success">
+                                                        <i class="fas fa-check-circle me-1"></i>Opérationnel
+                                                    </span>
+                                                {% elif client.nb_equipements_en_ligne == 0 %}
+                                                    <span class="badge bg-danger">
+                                                        <i class="fas fa-times-circle me-1"></i>Critique
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-warning">
+                                                        <i class="fas fa-exclamation-triangle me-1"></i>Attention
+                                                    </span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {{ client.date_creation.strftime('%d/%m/%Y') }}
+                                            </td>
+                                            <td>
+                                                <div class="btn-group" role="group">
+                                                    <a href="{{ url_for('equipements') }}?client={{ client.id }}" 
+                                                       class="btn btn-sm btn-outline-primary" 
+                                                       title="Voir les équipements">
+                                                        <i class="fas fa-camera"></i>
+                                                    </a>
+                                                    <button type="button" 
+                                                            class="btn btn-sm btn-outline-secondary"
+                                                            title="Modifier">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center text-muted py-5">
+                            <i class="fas fa-users-slash fa-3x mb-3"></i>
+                            <h5>Aucun client configuré</h5>
+                            <p>Commencez par ajouter votre premier client</p>
+                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#ajouterClientModal">
+                                <i class="fas fa-plus me-1"></i>
+                                Ajouter un client
+                            </button>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Ajouter Client -->
+<div class="modal fade" id="ajouterClientModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus me-2"></i>
+                    Ajouter un nouveau client
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('ajouter_client') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="nom" class="form-label">Nom du client *</label>
+                        <input type="text" class="form-control" id="nom" name="nom" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="adresse" class="form-label">Adresse</label>
+                        <textarea class="form-control" id="adresse" name="adresse" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="telephone" class="form-label">Téléphone</label>
+                                <input type="tel" class="form-control" id="telephone" name="telephone">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="email" name="email">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>
+                        Enregistrer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

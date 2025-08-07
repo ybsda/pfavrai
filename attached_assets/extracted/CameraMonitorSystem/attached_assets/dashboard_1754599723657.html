@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+
+{% block title %}Tableau de bord - Monitoring Caméras{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h2">
+                <i class="fas fa-tachometer-alt me-2"></i>
+                Tableau de bord
+            </h1>
+            <p class="text-muted">Vue d'ensemble du système de monitoring</p>
+        </div>
+    </div>
+
+    <!-- Statistiques générales -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card bg-primary">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title text-white">{{ stats.total_clients or 0 }}</h5>
+                            <p class="card-text text-white-50">Clients actifs</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-users fa-2x text-white-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card bg-info">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title text-white">{{ stats.total_equipements or 0 }}</h5>
+                            <p class="card-text text-white-50">Équipements total</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-camera fa-2x text-white-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card bg-success">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title text-white">{{ stats.equipements_en_ligne or 0 }}</h5>
+                            <p class="card-text text-white-50">En ligne</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-check-circle fa-2x text-white-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card bg-danger">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title text-white">{{ stats.equipements_hors_ligne or 0 }}</h5>
+                            <p class="card-text text-white-50">Hors ligne</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-times-circle fa-2x text-white-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graphique de statut -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>
+                        Répartition des équipements
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="equipementsChart" width="400" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Alertes récentes
+                    </h5>
+                    {% if stats.alertes_non_lues > 0 %}
+                        <span class="badge bg-danger">{{ stats.alertes_non_lues }} non lues</span>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    {% if dernieres_alertes %}
+                        <div class="list-group list-group-flush">
+                            {% for alerte in dernieres_alertes[:5] %}
+                                <div class="list-group-item {% if not alerte.lue %}bg-warning bg-opacity-10{% endif %}">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">
+                                            <i class="fas fa-{{ 'arrow-up text-success' if alerte.type_alerte == 'retour_en_ligne' else 'arrow-down text-danger' }}"></i>
+                                            {{ alerte.equipement.nom }}
+                                        </h6>
+                                        <small>{{ alerte.timestamp.strftime('%H:%M') }}</small>
+                                    </div>
+                                    <p class="mb-1">{{ alerte.message }}</p>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        {% if dernieres_alertes|length > 5 %}
+                            <div class="text-center mt-3">
+                                <a href="{{ url_for('alertes') }}" class="btn btn-outline-primary btn-sm">
+                                    Voir toutes les alertes
+                                </a>
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="text-center text-muted">
+                            <i class="fas fa-check-circle fa-3x mb-3"></i>
+                            <p>Aucune alerte récente</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liste des clients avec statut des équipements -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-users me-2"></i>
+                        Statut par client
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if clients %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Client</th>
+                                        <th>Équipements total</th>
+                                        <th>En ligne</th>
+                                        <th>Hors ligne</th>
+                                        <th>Statut global</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for client in clients %}
+                                        <tr>
+                                            <td>
+                                                <strong>{{ client.nom }}</strong>
+                                                {% if client.adresse %}
+                                                    <br><small class="text-muted">{{ client.adresse }}</small>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ client.nb_equipements_total }}</td>
+                                            <td>
+                                                <span class="badge bg-success">{{ client.nb_equipements_en_ligne }}</span>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-danger">{{ client.nb_equipements_hors_ligne }}</span>
+                                            </td>
+                                            <td>
+                                                {% if client.nb_equipements_total == 0 %}
+                                                    <span class="badge bg-secondary">Aucun équipement</span>
+                                                {% elif client.nb_equipements_hors_ligne == 0 %}
+                                                    <span class="badge bg-success">
+                                                        <i class="fas fa-check-circle me-1"></i>Tous en ligne
+                                                    </span>
+                                                {% elif client.nb_equipements_en_ligne == 0 %}
+                                                    <span class="badge bg-danger">
+                                                        <i class="fas fa-times-circle me-1"></i>Tous hors ligne
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-warning">
+                                                        <i class="fas fa-exclamation-triangle me-1"></i>Partiel
+                                                    </span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <a href="{{ url_for('equipements') }}?client={{ client.id }}" 
+                                                   class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-eye me-1"></i>Détails
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center text-muted">
+                            <i class="fas fa-users-slash fa-3x mb-3"></i>
+                            <p>Aucun client configuré</p>
+                            <a href="{{ url_for('clients') }}" class="btn btn-primary">
+                                <i class="fas fa-plus me-1"></i>Ajouter un client
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script>
+    // Graphique des équipements
+    const ctx = document.getElementById('equipementsChart').getContext('2d');
+    const equipementsChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['En ligne', 'Hors ligne'],
+            datasets: [{
+                data: [{{ stats.equipements_en_ligne or 0 }}, {{ stats.equipements_hors_ligne or 0 }}],
+                backgroundColor: [
+                    'rgba(40, 167, 69, 0.8)',
+                    'rgba(220, 53, 69, 0.8)'
+                ],
+                borderColor: [
+                    'rgba(40, 167, 69, 1)',
+                    'rgba(220, 53, 69, 1)'
+                ],
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

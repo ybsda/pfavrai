@@ -1,0 +1,299 @@
+{% extends "base.html" %}
+
+{% block title %}Alertes - Monitoring Caméras{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h2">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                Gestion des alertes
+            </h1>
+            <p class="text-muted">Consulter et gérer toutes les alertes du système</p>
+        </div>
+        <div class="col-auto">
+            <button type="button" class="btn btn-outline-secondary" onclick="marquerToutesLues()">
+                <i class="fas fa-check-double me-1"></i>
+                Marquer toutes comme lues
+            </button>
+        </div>
+    </div>
+
+    <!-- Statistiques des alertes -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-warning">
+                <div class="card-body text-center">
+                    <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                    <h4>{{ alertes|selectattr('lue', 'equalto', False)|list|length }}</h4>
+                    <p class="mb-0">Alertes non lues</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info">
+                <div class="card-body text-center">
+                    <i class="fas fa-list fa-2x mb-2"></i>
+                    <h4>{{ alertes|length }}</h4>
+                    <p class="mb-0">Total des alertes</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger">
+                <div class="card-body text-center">
+                    <i class="fas fa-arrow-down fa-2x mb-2"></i>
+                    <h4>{{ alertes|selectattr('type_alerte', 'equalto', 'hors_ligne')|list|length }}</h4>
+                    <p class="mb-0">Équipements hors ligne</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success">
+                <div class="card-body text-center">
+                    <i class="fas fa-arrow-up fa-2x mb-2"></i>
+                    <h4>{{ alertes|selectattr('type_alerte', 'equalto', 'retour_en_ligne')|list|length }}</h4>
+                    <p class="mb-0">Retours en ligne</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtres -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label for="filtreStatut" class="form-label">Statut de lecture</label>
+                            <select class="form-select" id="filtreStatut">
+                                <option value="">Toutes les alertes</option>
+                                <option value="non_lue">Non lues uniquement</option>
+                                <option value="lue">Lues uniquement</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="filtreType" class="form-label">Type d'alerte</label>
+                            <select class="form-select" id="filtreType">
+                                <option value="">Tous les types</option>
+                                <option value="hors_ligne">Hors ligne</option>
+                                <option value="retour_en_ligne">Retour en ligne</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="filtrePeriode" class="form-label">Période</label>
+                            <select class="form-select" id="filtrePeriode">
+                                <option value="">Toutes les périodes</option>
+                                <option value="today">Aujourd'hui</option>
+                                <option value="week">Cette semaine</option>
+                                <option value="month">Ce mois</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="button" class="btn btn-outline-primary w-100" onclick="appliquerFiltres()">
+                                <i class="fas fa-filter me-1"></i>
+                                Appliquer filtres
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liste des alertes -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-bell me-2"></i>
+                        Toutes les alertes
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if alertes %}
+                        <div class="list-group list-group-flush" id="listeAlertes">
+                            {% for alerte in alertes %}
+                                <div class="list-group-item {% if not alerte.lue %}bg-warning bg-opacity-10 border-warning{% endif %}"
+                                     data-alerte-id="{{ alerte.id }}"
+                                     data-statut="{{ 'non_lue' if not alerte.lue else 'lue' }}"
+                                     data-type="{{ alerte.type_alerte }}"
+                                     data-timestamp="{{ alerte.timestamp.isoformat() }}">
+                                    
+                                    <div class="row align-items-center">
+                                        <div class="col-auto">
+                                            {% if alerte.type_alerte == 'hors_ligne' %}
+                                                <i class="fas fa-arrow-down fa-2x text-danger"></i>
+                                            {% elif alerte.type_alerte == 'retour_en_ligne' %}
+                                                <i class="fas fa-arrow-up fa-2x text-success"></i>
+                                            {% else %}
+                                                <i class="fas fa-exclamation-triangle fa-2x text-warning"></i>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <div class="col">
+                                            <div class="d-flex w-100 justify-content-between align-items-start">
+                                                <div>
+                                                    <h6 class="mb-1">
+                                                        {{ alerte.equipement.nom }}
+                                                        {% if not alerte.lue %}
+                                                            <span class="badge bg-warning text-dark ms-2">Nouveau</span>
+                                                        {% endif %}
+                                                    </h6>
+                                                    <p class="mb-1">{{ alerte.message }}</p>
+                                                    <small class="text-muted">
+                                                        <i class="fas fa-user me-1"></i>{{ alerte.equipement.client.nom }}
+                                                        <i class="fas fa-network-wired me-1 ms-3"></i>{{ alerte.equipement.adresse_ip }}
+                                                    </small>
+                                                </div>
+                                                
+                                                <div class="text-end">
+                                                    <small class="text-muted d-block">
+                                                        {{ alerte.timestamp.strftime('%d/%m/%Y') }}<br>
+                                                        {{ alerte.timestamp.strftime('%H:%M:%S') }}
+                                                    </small>
+                                                    {% if not alerte.lue %}
+                                                        <button type="button" 
+                                                                class="btn btn-sm btn-outline-success mt-2"
+                                                                onclick="marquerLue({{ alerte.id }})"
+                                                                title="Marquer comme lue">
+                                                            <i class="fas fa-check"></i>
+                                                        </button>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center text-muted py-5">
+                            <i class="fas fa-check-circle fa-3x mb-3"></i>
+                            <h5>Aucune alerte</h5>
+                            <p>Toutes vos équipements fonctionnent correctement !</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Marquer une alerte comme lue
+    function marquerLue(alerteId) {
+        fetch(`/api/alertes/marquer_lue/${alerteId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Mettre à jour l'interface
+                const alerteElement = document.querySelector(`[data-alerte-id="${alerteId}"]`);
+                if (alerteElement) {
+                    alerteElement.classList.remove('bg-warning', 'bg-opacity-10', 'border-warning');
+                    alerteElement.dataset.statut = 'lue';
+                    
+                    // Supprimer le badge "Nouveau" et le bouton
+                    const badge = alerteElement.querySelector('.badge.bg-warning');
+                    if (badge) badge.remove();
+                    
+                    const button = alerteElement.querySelector('button');
+                    if (button) button.remove();
+                }
+                
+                // Actualiser les statistiques
+                location.reload();
+            }
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            alert('Erreur lors de la mise à jour de l\'alerte');
+        });
+    }
+    
+    // Marquer toutes les alertes comme lues
+    function marquerToutesLues() {
+        if (confirm('Êtes-vous sûr de vouloir marquer toutes les alertes comme lues ?')) {
+            const alertesNonLues = document.querySelectorAll('[data-statut="non_lue"]');
+            
+            alertesNonLues.forEach(alerte => {
+                const alerteId = alerte.dataset.alerteId;
+                marquerLue(alerteId);
+            });
+        }
+    }
+    
+    // Filtrage des alertes
+    function appliquerFiltres() {
+        const filtreStatut = document.getElementById('filtreStatut').value;
+        const filtreType = document.getElementById('filtreType').value;
+        const filtrePeriode = document.getElementById('filtrePeriode').value;
+        
+        const alertes = document.querySelectorAll('#listeAlertes .list-group-item');
+        
+        alertes.forEach(alerte => {
+            let afficher = true;
+            
+            // Filtrer par statut
+            if (filtreStatut && alerte.dataset.statut !== filtreStatut) {
+                afficher = false;
+            }
+            
+            // Filtrer par type
+            if (filtreType && alerte.dataset.type !== filtreType) {
+                afficher = false;
+            }
+            
+            // Filtrer par période
+            if (filtrePeriode) {
+                const timestamp = new Date(alerte.dataset.timestamp);
+                const maintenant = new Date();
+                
+                switch (filtrePeriode) {
+                    case 'today':
+                        if (timestamp.toDateString() !== maintenant.toDateString()) {
+                            afficher = false;
+                        }
+                        break;
+                    case 'week':
+                        const uneSemaine = new Date(maintenant.getTime() - 7 * 24 * 60 * 60 * 1000);
+                        if (timestamp < uneSemaine) {
+                            afficher = false;
+                        }
+                        break;
+                    case 'month':
+                        const unMois = new Date(maintenant.getTime() - 30 * 24 * 60 * 60 * 1000);
+                        if (timestamp < unMois) {
+                            afficher = false;
+                        }
+                        break;
+                }
+            }
+            
+            alerte.style.display = afficher ? '' : 'none';
+        });
+    }
+    
+    // Événements de filtrage
+    document.getElementById('filtreStatut').addEventListener('change', appliquerFiltres);
+    document.getElementById('filtreType').addEventListener('change', appliquerFiltres);
+    document.getElementById('filtrePeriode').addEventListener('change', appliquerFiltres);
+    
+    // Auto-actualisation toutes les 2 minutes
+    setInterval(() => {
+        if (document.visibilityState === 'visible') {
+            location.reload();
+        }
+    }, 120000);
+</script>
+{% endblock %}

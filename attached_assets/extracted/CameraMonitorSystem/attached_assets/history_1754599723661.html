@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+
+{% block title %}Historique - Monitoring Caméras{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h2">
+                <i class="fas fa-history me-2"></i>
+                Historique des connexions
+            </h1>
+            <p class="text-muted">Consulter l'historique complet des pings et connexions</p>
+        </div>
+    </div>
+
+    <!-- Filtres -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-3">
+                            <label for="equipement" class="form-label">Équipement</label>
+                            <select class="form-select" id="equipement" name="equipement">
+                                <option value="">Tous les équipements</option>
+                                <!-- Options générées dynamiquement -->
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="statut" class="form-label">Statut</label>
+                            <select class="form-select" id="statut" name="statut">
+                                <option value="">Tous les statuts</option>
+                                <option value="success">Succès</option>
+                                <option value="timeout">Timeout</option>
+                                <option value="error">Erreur</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="date_debut" class="form-label">Date début</label>
+                            <input type="date" class="form-control" id="date_debut" name="date_debut">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="date_fin" class="form-label">Date fin</label>
+                            <input type="date" class="form-control" id="date_fin" name="date_fin">
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-search me-1"></i>
+                                Filtrer
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Historique des pings -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-list me-2"></i>
+                        Historique des pings
+                    </h5>
+                    <div>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="exporterCSV()">
+                            <i class="fas fa-download me-1"></i>
+                            Exporter CSV
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if historique and historique.items %}
+                        <div class="table-responsive">
+                            <table class="table table-hover table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Date/Heure</th>
+                                        <th>Équipement</th>
+                                        <th>Client</th>
+                                        <th>Adresse IP</th>
+                                        <th>Statut</th>
+                                        <th>Temps réponse</th>
+                                        <th>Message</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for ping in historique.items %}
+                                        <tr>
+                                            <td>
+                                                <small>{{ ping.timestamp.strftime('%d/%m/%Y %H:%M:%S') }}</small>
+                                            </td>
+                                            <td>
+                                                <strong>{{ ping.equipement.nom }}</strong>
+                                            </td>
+                                            <td>
+                                                {{ ping.equipement.client.nom }}
+                                            </td>
+                                            <td>
+                                                <code>{{ ping.equipement.adresse_ip }}</code>
+                                            </td>
+                                            <td>
+                                                {% if ping.statut == 'success' %}
+                                                    <span class="badge bg-success">
+                                                        <i class="fas fa-check me-1"></i>Succès
+                                                    </span>
+                                                {% elif ping.statut == 'timeout' %}
+                                                    <span class="badge bg-warning">
+                                                        <i class="fas fa-clock me-1"></i>Timeout
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">
+                                                        <i class="fas fa-times me-1"></i>Erreur
+                                                    </span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if ping.reponse_ms %}
+                                                    <span class="badge bg-info">{{ ping.reponse_ms }}ms</span>
+                                                {% else %}
+                                                    <span class="text-muted">-</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if ping.message %}
+                                                    <small class="text-muted">{{ ping.message }}</small>
+                                                {% else %}
+                                                    <span class="text-muted">-</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination -->
+                        {% if historique.pages > 1 %}
+                            <nav aria-label="Pagination de l'historique">
+                                <ul class="pagination justify-content-center">
+                                    {% if historique.has_prev %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ url_for('historique', page=historique.prev_num) }}">
+                                                <i class="fas fa-chevron-left"></i>
+                                            </a>
+                                        </li>
+                                    {% endif %}
+                                    
+                                    {% for page_num in historique.iter_pages() %}
+                                        {% if page_num %}
+                                            {% if page_num != historique.page %}
+                                                <li class="page-item">
+                                                    <a class="page-link" href="{{ url_for('historique', page=page_num) }}">{{ page_num }}</a>
+                                                </li>
+                                            {% else %}
+                                                <li class="page-item active">
+                                                    <span class="page-link">{{ page_num }}</span>
+                                                </li>
+                                            {% endif %}
+                                        {% else %}
+                                            <li class="page-item disabled">
+                                                <span class="page-link">…</span>
+                                            </li>
+                                        {% endif %}
+                                    {% endfor %}
+                                    
+                                    {% if historique.has_next %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ url_for('historique', page=historique.next_num) }}">
+                                                <i class="fas fa-chevron-right"></i>
+                                            </a>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                        {% endif %}
+
+                        <!-- Informations de pagination -->
+                        <div class="text-center text-muted mt-3">
+                            <small>
+                                Affichage de {{ historique.per_page * (historique.page - 1) + 1 }} 
+                                à {{ historique.per_page * (historique.page - 1) + historique.items|length }} 
+                                sur {{ historique.total }} entrées
+                            </small>
+                        </div>
+
+                    {% else %}
+                        <div class="text-center text-muted py-5">
+                            <i class="fas fa-history fa-3x mb-3"></i>
+                            <h5>Aucun historique disponible</h5>
+                            <p>L'historique des pings apparaîtra ici une fois que les équipements commenceront à envoyer des données.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Export CSV (placeholder)
+    function exporterCSV() {
+        alert('Fonctionnalité d\'export CSV à implémenter');
+    }
+    
+    // Auto-actualisation de la page toutes les 60 secondes
+    setInterval(() => {
+        if (document.visibilityState === 'visible') {
+            location.reload();
+        }
+    }, 60000);
+</script>
+{% endblock %}

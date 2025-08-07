@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+
+{% block title %}Équipements - Monitoring Caméras{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h2">
+                <i class="fas fa-camera me-2"></i>
+                Gestion des équipements
+            </h1>
+            <p class="text-muted">Gérer les caméras, DVR et autres équipements de sécurité</p>
+        </div>
+        <div class="col-auto">
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#ajouterEquipementModal">
+                <i class="fas fa-plus me-1"></i>
+                Ajouter un équipement
+            </button>
+        </div>
+    </div>
+
+    <!-- Liste des équipements -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-list me-2"></i>
+                        Liste des équipements
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if equipements %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Nom</th>
+                                        <th>Type</th>
+                                        <th>Adresse IP</th>
+                                        <th>Client</th>
+                                        <th>Statut</th>
+                                        <th>Dernier ping</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for equipement in equipements %}
+                                        <tr>
+                                            <td>
+                                                <strong>{{ equipement.nom }}</strong>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-info">{{ equipement.type_equipement }}</span>
+                                            </td>
+                                            <td>
+                                                {{ equipement.adresse_ip }}:{{ equipement.port }}
+                                            </td>
+                                            <td>{{ equipement.client.nom }}</td>
+                                            <td>
+                                                {% if equipement.est_en_ligne %}
+                                                    <span class="badge bg-success">
+                                                        <i class="fas fa-check-circle me-1"></i>
+                                                        En ligne
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">
+                                                        <i class="fas fa-times-circle me-1"></i>
+                                                        Hors ligne
+                                                    </span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if equipement.dernier_ping %}
+                                                    <small>{{ equipement.dernier_ping.strftime('%d/%m/%Y %H:%M') }}</small>
+                                                    <br>
+                                                    <small class="text-muted">{{ equipement.duree_depuis_dernier_ping }}</small>
+                                                {% else %}
+                                                    <span class="text-muted">Jamais</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <button type="button" 
+                                                        class="btn btn-sm btn-outline-primary"
+                                                        onclick="testerConnexion({{ equipement.id }})"
+                                                        title="Tester la connexion">
+                                                    <i class="fas fa-plug"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center text-muted py-5">
+                            <i class="fas fa-camera fa-3x mb-3"></i>
+                            <h5>Aucun équipement</h5>
+                            <p>Commencez par ajouter votre premier équipement</p>
+                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#ajouterEquipementModal">
+                                <i class="fas fa-plus me-1"></i>
+                                Ajouter un équipement
+                            </button>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal pour ajouter un équipement -->
+<div class="modal fade" id="ajouterEquipementModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-camera me-2"></i>
+                    Ajouter un nouvel équipement
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('ajouter_equipement') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="nom" class="form-label">Nom de l'équipement *</label>
+                        <input type="text" class="form-control" id="nom" name="nom" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="type_equipement" class="form-label">Type d'équipement *</label>
+                        <select class="form-select" id="type_equipement" name="type_equipement" required>
+                            <option value="">Sélectionner un type</option>
+                            <option value="DVR">DVR</option>
+                            <option value="NVR">NVR</option>
+                            <option value="Camera IP">Caméra IP</option>
+                            <option value="Camera Analogique">Caméra Analogique</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="adresse_ip" class="form-label">Adresse IP *</label>
+                        <input type="text" class="form-control" id="adresse_ip" name="adresse_ip" 
+                               placeholder="192.168.1.100" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="port" class="form-label">Port</label>
+                        <input type="number" class="form-control" id="port" name="port" value="80">
+                    </div>
+                    <div class="mb-3">
+                        <label for="client_id" class="form-label">Client *</label>
+                        <select class="form-select" id="client_id" name="client_id" required>
+                            <option value="">Sélectionner un client</option>
+                            {% for client in clients %}
+                                <option value="{{ client.id }}">{{ client.nom }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>
+                        Enregistrer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function testerConnexion(equipementId) {
+        const button = event.target.closest('button');
+        const originalHtml = button.innerHTML;
+        
+        // Afficher un spinner pendant le test
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        button.disabled = true;
+        
+        fetch(`/api/equipement/${equipementId}/test-connexion`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Afficher un message de succès
+                const alert = document.createElement('div');
+                alert.className = 'alert alert-success alert-dismissible fade show';
+                alert.innerHTML = `
+                    ${data.message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                document.querySelector('.container').insertBefore(alert, document.querySelector('.row'));
+                
+                // Actualiser la page après 2 secondes
+                setTimeout(() => {
+                    location.reload();
+                }, 2000);
+            } else {
+                alert(`Erreur: ${data.error || 'Test de connexion échoué'}`);
+            }
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            alert('Erreur lors du test de connexion');
+        })
+        .finally(() => {
+            // Restaurer le bouton
+            button.innerHTML = originalHtml;
+            button.disabled = false;
+        });
+    }
+</script>
+{% endblock %}

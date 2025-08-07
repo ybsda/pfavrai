@@ -1,0 +1,380 @@
+{% extends "base.html" %}
+
+{% block title %}Équipements - Monitoring Caméras{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h2">
+                <i class="fas fa-camera me-2"></i>
+                Gestion des équipements
+            </h1>
+            <p class="text-muted">Surveiller et gérer tous les équipements clients</p>
+        </div>
+        <div class="col-auto">
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#ajouterEquipementModal">
+                <i class="fas fa-plus me-1"></i>
+                Ajouter un équipement
+            </button>
+        </div>
+    </div>
+
+    <!-- Filtres -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label for="filtreClient" class="form-label">Filtrer par client</label>
+                            <select class="form-select" id="filtreClient">
+                                <option value="">Tous les clients</option>
+                                {% for client in clients %}
+                                    <option value="{{ client.id }}">{{ client.nom }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="filtreStatut" class="form-label">Filtrer par statut</label>
+                            <select class="form-select" id="filtreStatut">
+                                <option value="">Tous les statuts</option>
+                                <option value="en_ligne">En ligne</option>
+                                <option value="hors_ligne">Hors ligne</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="filtreType" class="form-label">Filtrer par type</label>
+                            <select class="form-select" id="filtreType">
+                                <option value="">Tous les types</option>
+                                <option value="DVR">DVR</option>
+                                <option value="Camera">Caméra</option>
+                                <option value="NVR">NVR</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liste des équipements -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-list me-2"></i>
+                        Liste des équipements
+                    </h5>
+                    <div>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="actualiserStatuts()">
+                            <i class="fas fa-sync-alt me-1"></i>
+                            Actualiser
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if equipements %}
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="tableEquipements">
+                                <thead>
+                                    <tr>
+                                        <th>Statut</th>
+                                        <th>Nom</th>
+                                        <th>Type</th>
+                                        <th>Adresse IP</th>
+                                        <th>Client</th>
+                                        <th>Dernier ping</th>
+                                        <th>Durée</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for equipement in equipements %}
+                                        <tr data-client="{{ equipement.client_id }}" 
+                                            data-statut="{{ 'en_ligne' if equipement.est_en_ligne else 'hors_ligne' }}"
+                                            data-type="{{ equipement.type_equipement }}">
+                                            <td>
+                                                {% if equipement.est_en_ligne %}
+                                                    <span class="badge bg-success">
+                                                        <i class="fas fa-check-circle me-1"></i>En ligne
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">
+                                                        <i class="fas fa-times-circle me-1"></i>Hors ligne
+                                                    </span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <strong>{{ equipement.nom }}</strong>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-info">{{ equipement.type_equipement }}</span>
+                                            </td>
+                                            <td>
+                                                <code>{{ equipement.adresse_ip }}:{{ equipement.port }}</code>
+                                            </td>
+                                            <td>
+                                                {{ equipement.client.nom }}
+                                            </td>
+                                            <td>
+                                                {% if equipement.dernier_ping %}
+                                                    {{ equipement.dernier_ping.strftime('%d/%m/%Y %H:%M:%S') }}
+                                                {% else %}
+                                                    <span class="text-muted">Jamais</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <span class="{% if not equipement.est_en_ligne %}text-danger{% endif %}">
+                                                    {{ equipement.duree_depuis_dernier_ping }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group" role="group">
+                                                    <button type="button" 
+                                                            class="btn btn-sm btn-outline-primary"
+                                                            onclick="voirHistorique({{ equipement.id }})"
+                                                            title="Voir l'historique">
+                                                        <i class="fas fa-history"></i>
+                                                    </button>
+                                                    <button type="button" 
+                                                            class="btn btn-sm btn-outline-secondary"
+                                                            title="Modifier">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button type="button" 
+                                                            class="btn btn-sm btn-outline-info"
+                                                            onclick="testerConnexion({{ equipement.id }})"
+                                                            title="Tester la connexion">
+                                                        <i class="fas fa-network-wired"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center text-muted py-5">
+                            <i class="fas fa-camera-slash fa-3x mb-3"></i>
+                            <h5>Aucun équipement configuré</h5>
+                            <p>Commencez par ajouter votre premier équipement</p>
+                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#ajouterEquipementModal">
+                                <i class="fas fa-plus me-1"></i>
+                                Ajouter un équipement
+                            </button>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Ajouter Équipement -->
+<div class="modal fade" id="ajouterEquipementModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus me-2"></i>
+                    Ajouter un nouvel équipement
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('ajouter_equipement') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="nom" class="form-label">Nom de l'équipement *</label>
+                        <input type="text" class="form-control" id="nom" name="nom" required>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="type_equipement" class="form-label">Type d'équipement *</label>
+                                <select class="form-select" id="type_equipement" name="type_equipement" required>
+                                    <option value="">Sélectionner un type</option>
+                                    <option value="DVR">DVR</option>
+                                    <option value="Camera">Caméra</option>
+                                    <option value="NVR">NVR</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="client_id" class="form-label">Client *</label>
+                                <select class="form-select" id="client_id" name="client_id" required>
+                                    <option value="">Sélectionner un client</option>
+                                    {% for client in clients %}
+                                        <option value="{{ client.id }}">{{ client.nom }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label for="adresse_ip" class="form-label">Adresse IP *</label>
+                                <input type="text" class="form-control" id="adresse_ip" name="adresse_ip" 
+                                       placeholder="192.168.1.100" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="port" class="form-label">Port</label>
+                                <input type="number" class="form-control" id="port" name="port" 
+                                       value="80" min="1" max="65535">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>
+                        Enregistrer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Filtrage des équipements
+    function filtrerEquipements() {
+        const filtreClient = document.getElementById('filtreClient').value;
+        const filtreStatut = document.getElementById('filtreStatut').value;
+        const filtreType = document.getElementById('filtreType').value;
+        
+        const lignes = document.querySelectorAll('#tableEquipements tbody tr');
+        
+        lignes.forEach(ligne => {
+            let afficher = true;
+            
+            if (filtreClient && ligne.dataset.client !== filtreClient) {
+                afficher = false;
+            }
+            
+            if (filtreStatut && ligne.dataset.statut !== filtreStatut) {
+                afficher = false;
+            }
+            
+            if (filtreType && ligne.dataset.type !== filtreType) {
+                afficher = false;
+            }
+            
+            ligne.style.display = afficher ? '' : 'none';
+        });
+    }
+    
+    // Événements de filtrage
+    document.getElementById('filtreClient').addEventListener('change', filtrerEquipements);
+    document.getElementById('filtreStatut').addEventListener('change', filtrerEquipements);
+    document.getElementById('filtreType').addEventListener('change', filtrerEquipements);
+    
+    // Actualiser les statuts
+    function actualiserStatuts() {
+        location.reload();
+    }
+    
+    // Voir l'historique d'un équipement
+    function voirHistorique(equipementId) {
+        window.location.href = `{{ url_for('historique') }}?equipement=${equipementId}`;
+    }
+    
+    // Tester la connexion d'un équipement
+    async function testerConnexion(equipementId) {
+        const bouton = event.target.closest('button');
+        const texteOriginal = bouton.innerHTML;
+        
+        // Désactiver le bouton et montrer le chargement
+        bouton.disabled = true;
+        bouton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Test...';
+        
+        try {
+            const response = await fetch(`/api/equipement/${equipementId}/test-connexion`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.status === 'success') {
+                // Succès - montrer notification
+                showToast('success', `✅ ${data.message}`, `Équipement: ${data.equipement.nom} (${data.equipement.adresse_ip})`);
+                
+                // Actualiser la page après 1 seconde pour voir les changements
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+                
+            } else {
+                // Erreur
+                showToast('error', '❌ Échec du test', data.error || 'Erreur inconnue');
+            }
+            
+        } catch (error) {
+            console.error('Erreur lors du test:', error);
+            showToast('error', '❌ Erreur réseau', 'Impossible de communiquer avec le serveur');
+        } finally {
+            // Réactiver le bouton
+            bouton.disabled = false;
+            bouton.innerHTML = texteOriginal;
+        }
+    }
+    
+    // Fonction pour afficher des notifications toast
+    function showToast(type, title, message) {
+        // Créer un toast Bootstrap
+        const toastContainer = document.querySelector('#toastContainer') || createToastContainer();
+        
+        const toastId = 'toast-' + Date.now();
+        const bgClass = type === 'success' ? 'bg-success' : 'bg-danger';
+        
+        const toastHTML = `
+            <div id="${toastId}" class="toast ${bgClass} text-white" role="alert">
+                <div class="toast-header ${bgClass} text-white border-0">
+                    <strong class="me-auto">${title}</strong>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+                </div>
+                <div class="toast-body">
+                    ${message}
+                </div>
+            </div>
+        `;
+        
+        toastContainer.innerHTML = toastHTML;
+        
+        // Afficher le toast
+        const toast = new bootstrap.Toast(document.querySelector(`#${toastId}`));
+        toast.show();
+    }
+    
+    // Créer le conteneur de toast s'il n'existe pas
+    function createToastContainer() {
+        const container = document.createElement('div');
+        container.id = 'toastContainer';
+        container.className = 'toast-container position-fixed top-0 end-0 p-3';
+        container.style.zIndex = '9999';
+        document.body.appendChild(container);
+        return container;
+    }
+    
+    // Auto-actualisation toutes les 30 secondes
+    setInterval(() => {
+        if (document.visibilityState === 'visible') {
+            actualiserStatuts();
+        }
+    }, 30000);
+</script>
+{% endblock %}
