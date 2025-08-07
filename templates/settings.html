@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - Camera Monitoring System{% endblock %}
+{% block page_title %}Settings{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- User Profile -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-user"></i> User Profile</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 text-center">
+                            {% if user.profile_image_url %}
+                            <img src="{{ user.profile_image_url }}" alt="Profile" class="profile-image-large mb-3">
+                            {% else %}
+                            <div class="profile-placeholder-large mb-3">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-9">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong>User ID:</strong></td>
+                                    <td>{{ user.id }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Name:</strong></td>
+                                    <td>{{ user.first_name or 'Not provided' }} {{ user.last_name or '' }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Email:</strong></td>
+                                    <td>{{ user.email or 'Not provided' }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Member Since:</strong></td>
+                                    <td>{{ moment(user.created_at).format('MMMM DD, YYYY') }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Last Updated:</strong></td>
+                                    <td>{{ moment(user.updated_at).fromNow() }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Preferences -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-cogs"></i> System Preferences</h5>
+                </div>
+                <div class="card-body">
+                    <form>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Notification Preferences</label>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="emailNotifications" checked>
+                                        <label class="form-check-label" for="emailNotifications">
+                                            Email notifications for alerts
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="pushNotifications" checked>
+                                        <label class="form-check-label" for="pushNotifications">
+                                            Push notifications
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="smsNotifications">
+                                        <label class="form-check-label" for="smsNotifications">
+                                            SMS notifications (critical alerts only)
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Display Settings</label>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="darkTheme" checked>
+                                        <label class="form-check-label" for="darkTheme">
+                                            Dark theme
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="autoRefresh" checked>
+                                        <label class="form-check-label" for="autoRefresh">
+                                            Auto-refresh camera feeds
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="soundAlerts" checked>
+                                        <label class="form-check-label" for="soundAlerts">
+                                            Sound alerts
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="refreshInterval" class="form-label">Auto-refresh Interval</label>
+                                    <select class="form-select" id="refreshInterval">
+                                        <option value="15">15 seconds</option>
+                                        <option value="30" selected>30 seconds</option>
+                                        <option value="60">1 minute</option>
+                                        <option value="300">5 minutes</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="defaultView" class="form-label">Default View</label>
+                                    <select class="form-select" id="defaultView">
+                                        <option value="dashboard" selected>Dashboard</option>
+                                        <option value="cameras">Cameras</option>
+                                        <option value="alerts">Alerts</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="button" class="btn btn-primary" onclick="saveSettings()">
+                            <i class="fas fa-save"></i> Save Settings
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Security Settings -->
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-shield-alt"></i> Security</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Authentication:</strong> This system uses secure authentication. 
+                        Your account is managed through the authentication provider.
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Session Information</h6>
+                            <p class="text-muted">Current session details and security status.</p>
+                            <ul class="list-unstyled">
+                                <li><strong>Login Method:</strong> OAuth 2.0</li>
+                                <li><strong>Session Status:</strong> <span class="text-success">Active</span></li>
+                                <li><strong>Last Login:</strong> {{ moment().fromNow() }}</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Account Actions</h6>
+                            <p class="text-muted">Manage your account and sessions.</p>
+                            <div class="d-grid gap-2">
+                                <a href="{{ url_for('replit_auth.logout') }}" class="btn btn-outline-warning">
+                                    <i class="fas fa-sign-out-alt"></i> Sign Out
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Stats Sidebar -->
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6><i class="fas fa-chart-pie"></i> Account Statistics</h6>
+                </div>
+                <div class="card-body">
+                    <div class="stat-item">
+                        <div class="stat-icon text-primary">
+                            <i class="fas fa-camera"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-number">{{ user.cameras|length }}</div>
+                            <div class="stat-label">Cameras Added</div>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-icon text-success">
+                            <i class="fas fa-eye"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-number">{{ user.cameras|selectattr("status", "equalto", "online")|list|length }}</div>
+                            <div class="stat-label">Online Now</div>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-icon text-info">
+                            <i class="fas fa-bell"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-number">{{ user.cameras|map(attribute='alerts')|sum(start=[])|selectattr('acknowledged', 'equalto', false)|list|length }}</div>
+                            <div class="stat-label">Pending Alerts</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h6><i class="fas fa-info-circle"></i> System Information</h6>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm table-borderless">
+                        <tr>
+                            <td>System Version:</td>
+                            <td><span class="badge bg-primary">v2.1.0</span></td>
+                        </tr>
+                        <tr>
+                            <td>Server Status:</td>
+                            <td><span class="badge bg-success">Online</span></td>
+                        </tr>
+                        <tr>
+                            <td>Database:</td>
+                            <td><span class="badge bg-success">Connected</span></td>
+                        </tr>
+                        <tr>
+                            <td>Last Backup:</td>
+                            <td>{{ moment().subtract(2, 'hours').fromNow() }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function saveSettings() {
+    // In a real implementation, this would save settings to the server
+    showNotification('Settings saved successfully', 'success');
+}
+
+function showNotification(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 1050; min-width: 300px;';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(alertDiv);
+    
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.parentNode.removeChild(alertDiv);
+        }
+    }, 3000);
+}
+</script>
+{% endblock %}

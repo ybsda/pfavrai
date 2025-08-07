@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Welcome - Camera Monitoring System{% endblock %}
+
+{% block content %}
+<div class="landing-page">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 text-center">
+                <div class="landing-hero">
+                    <i class="fas fa-video landing-icon"></i>
+                    <h1 class="display-4 mb-4">Camera Monitoring System</h1>
+                    <p class="lead mb-5">
+                        Professional security camera monitoring solution with real-time alerts, 
+                        comprehensive dashboard, and advanced camera management features.
+                    </p>
+                    
+                    <div class="row mb-5">
+                        <div class="col-md-4 mb-3">
+                            <div class="feature-card">
+                                <i class="fas fa-eye feature-icon"></i>
+                                <h5>Real-time Monitoring</h5>
+                                <p>Monitor all your cameras in real-time with instant status updates and alerts.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="feature-card">
+                                <i class="fas fa-bell feature-icon"></i>
+                                <h5>Smart Alerts</h5>
+                                <p>Get notified instantly when cameras go offline or detect suspicious activity.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="feature-card">
+                                <i class="fas fa-chart-line feature-icon"></i>
+                                <h5>Analytics Dashboard</h5>
+                                <p>Comprehensive dashboard with system health metrics and camera statistics.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <a href="{{ url_for('replit_auth.login') }}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-sign-in-alt"></i> Get Started
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

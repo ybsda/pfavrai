@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+
+{% block title %}{{ camera.name }} - Camera Details{% endblock %}
+{% block page_title %}{{ camera.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('cameras') }}">Cameras</a></li>
+                <li class="breadcrumb-item active">{{ camera.name }}</li>
+            </ol>
+        </nav>
+        <div class="btn-group">
+            <form method="POST" action="{{ url_for('toggle_camera', camera_id=camera.id) }}" class="d-inline">
+                <button type="submit" class="btn btn-{{ 'warning' if camera.status == 'online' else 'success' }}">
+                    <i class="fas fa-{{ 'pause' if camera.status == 'online' else 'play' }}"></i>
+                    {{ 'Disable' if camera.status == 'online' else 'Enable' }}
+                </button>
+            </form>
+            <a href="{{ url_for('cameras') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Cameras
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Camera Feed -->
+        <div class="col-lg-8 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5><i class="fas fa-video"></i> Live Feed</h5>
+                    <span class="status-badge status-{{ camera.status }}">
+                        <i class="fas fa-circle"></i> {{ camera.status|title }}
+                    </span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="camera-detail-feed">
+                        {% if camera.status == 'online' %}
+                        <div class="mock-feed-large">
+                            <i class="fas fa-video feed-icon-large"></i>
+                            <div class="live-indicator-large">
+                                <i class="fas fa-circle text-danger"></i> LIVE
+                            </div>
+                            <div class="feed-overlay-large">
+                                <div class="timestamp-large" id="liveTimestamp"></div>
+                                <div class="camera-info-overlay">
+                                    <div class="camera-name-overlay">{{ camera.name }}</div>
+                                    <div class="location-overlay">{{ camera.location }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="feed-offline-large">
+                            <i class="fas fa-video-slash"></i>
+                            <h4>Camera {{ camera.status|title }}</h4>
+                            <p>Unable to connect to camera feed</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Camera Info & Controls -->
+        <div class="col-lg-4">
+            <!-- Camera Information -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6><i class="fas fa-info-circle"></i> Camera Information</h6>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless table-sm">
+                        <tr>
+                            <td><strong>Name:</strong></td>
+                            <td>{{ camera.name }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Location:</strong></td>
+                            <td>{{ camera.location }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Status:</strong></td>
+                            <td>
+                                <span class="status-badge status-{{ camera.status }}">
+                                    <i class="fas fa-circle"></i> {{ camera.status|title }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% if camera.ip_address %}
+                        <tr>
+                            <td><strong>IP Address:</strong></td>
+                            <td>{{ camera.ip_address }}:{{ camera.port }}</td>
+                        </tr>
+                        {% endif %}
+                        <tr>
+                            <td><strong>Added:</strong></td>
+                            <td>{{ moment(camera.created_at).format('MMM DD, YYYY HH:mm') }}</td>
+                        </tr>
+                        {% if camera.last_seen %}
+                        <tr>
+                            <td><strong>Last Seen:</strong></td>
+                            <td>{{ moment(camera.last_seen).fromNow() }}</td>
+                        </tr>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6><i class="fas fa-tools"></i> Quick Actions</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary" onclick="refreshFeed()">
+                            <i class="fas fa-sync-alt"></i> Refresh Feed
+                        </button>
+                        <button class="btn btn-outline-info" onclick="takeSnapshot()">
+                            <i class="fas fa-camera"></i> Take Snapshot
+                        </button>
+                        <button class="btn btn-outline-warning" onclick="testConnection()">
+                            <i class="fas fa-plug"></i> Test Connection
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Camera Statistics -->
+            <div class="card">
+                <div class="card-header">
+                    <h6><i class="fas fa-chart-bar"></i> Statistics</h6>
+                </div>
+                <div class="card-body">
+                    <div class="stat-item">
+                        <div class="stat-label">Uptime (24h)</div>
+                        <div class="stat-value">{{ '%.1f'|format(random() * 100) }}%</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Alerts Generated</div>
+                        <div class="stat-value">{{ alerts|length }}</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Average Response</div>
+                        <div class="stat-value">{{ random() * 1000|int }}ms</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Alerts -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-bell"></i> Recent Alerts</h5>
+                </div>
+                <div class="card-body">
+                    {% if alerts %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Type</th>
+                                    <th>Message</th>
+                                    <th>Severity</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for alert in alerts %}
+                                <tr class="{{ 'table-muted' if alert.acknowledged else '' }}">
+                                    <td>{{ moment(alert.created_at).format('MMM DD, HH:mm') }}</td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ alert.alert_type }}</span>
+                                    </td>
+                                    <td>{{ alert.message }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ 'danger' if alert.severity == 'critical' else 'warning' if alert.severity == 'warning' else 'info' }}">
+                                            {{ alert.severity|title }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if alert.acknowledged %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check"></i> Acknowledged
+                                        </span>
+                                        {% else %}
+                                        <span class="badge bg-warning">
+                                            <i class="fas fa-exclamation"></i> Pending
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if not alert.acknowledged %}
+                                        <form method="POST" action="{{ url_for('acknowledge_alert', alert_id=alert.id) }}" class="d-inline">
+                                            <button type="submit" class="btn btn-sm btn-outline-success" title="Acknowledge">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-check-circle text-success" style="font-size: 3rem;"></i>
+                        <h6 class="mt-2">No Recent Alerts</h6>
+                        <p class="text-muted">This camera has been running smoothly.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Update live timestamp
+function updateTimestamp() {
+    const now = new Date();
+    const timestamp = now.toLocaleTimeString();
+    const timestampElement = document.getElementById('liveTimestamp');
+    if (timestampElement) {
+        timestampElement.textContent = timestamp;
+    }
+}
+
+// Update timestamp every second
+if ({{ camera.status == 'online' | tojson }}) {
+    setInterval(updateTimestamp, 1000);
+    updateTimestamp(); // Initial call
+}
+
+// Quick action functions
+function refreshFeed() {
+    // In a real implementation, this would refresh the camera feed
+    showNotification('Feed refreshed', 'success');
+}
+
+function takeSnapshot() {
+    // In a real implementation, this would capture a snapshot
+    showNotification('Snapshot captured', 'success');
+}
+
+function testConnection() {
+    // In a real implementation, this would test the camera connection
+    showNotification('Connection test initiated', 'info');
+}
+
+function showNotification(message, type) {
+    // Simple notification system
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 1050; min-width: 300px;';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(alertDiv);
+    
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.parentNode.removeChild(alertDiv);
+        }
+    }, 3000);
+}
+</script>
+{% endblock %}

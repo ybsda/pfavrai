@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Access Error - Camera Monitoring System</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="error-page">
+    <div class="container">
+        <div class="row justify-content-center align-items-center min-vh-100">
+            <div class="col-md-6 text-center">
+                <div class="error-content">
+                    <i class="fas fa-exclamation-triangle error-icon text-warning"></i>
+                    <h1 class="display-4 text-warning">Access Error</h1>
+                    
+                    {% if error_message %}
+                    <p class="lead mb-4">{{ error_message }}</p>
+                    {% else %}
+                    <p class="lead mb-4">
+                        Sorry, you don't have permission to access this resource, or there was an authentication error.
+                    </p>
+                    {% endif %}
+                    
+                    <div class="error-actions">
+                        <a href="{{ url_for('index') }}" class="btn btn-primary me-3">
+                            <i class="fas fa-home"></i> Go Home
+                        </a>
+                        <a href="{{ url_for('replit_auth.login') }}" class="btn btn-outline-light">
+                            <i class="fas fa-sign-in-alt"></i> Sign In
+                        </a>
+                    </div>
+                    
+                    <div class="mt-5">
+                        <h6 class="text-muted">Common Solutions:</h6>
+                        <ul class="list-unstyled text-muted">
+                            <li><i class="fas fa-check text-success"></i> Make sure you're signed in</li>
+                            <li><i class="fas fa-check text-success"></i> Check if you have the required permissions</li>
+                            <li><i class="fas fa-check text-success"></i> Try refreshing the page</li>
+                            <li><i class="fas fa-check text-success"></i> Contact support if the problem persists</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block title %}Cameras - Camera Monitoring System{% endblock %}
+{% block page_title %}Camera Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4><i class="fas fa-camera"></i> Camera Management</h4>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCameraModal">
+            <i class="fas fa-plus"></i> Add Camera
+        </button>
+    </div>
+
+    {% if cameras %}
+    <div class="row">
+        {% for camera in cameras %}
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card camera-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">{{ camera.name }}</h6>
+                    <span class="status-badge status-{{ camera.status }}">
+                        <i class="fas fa-circle"></i> {{ camera.status|title }}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="camera-preview">
+                        {% if camera.status == 'online' %}
+                        <div class="mock-feed">
+                            <i class="fas fa-video feed-icon"></i>
+                            <div class="live-indicator">
+                                <i class="fas fa-circle text-danger"></i> LIVE
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="feed-offline">
+                            <i class="fas fa-video-slash"></i>
+                            <p>Camera {{ camera.status|title }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="camera-info mt-3">
+                        <p class="mb-1">
+                            <i class="fas fa-map-marker-alt text-muted"></i> 
+                            <strong>Location:</strong> {{ camera.location }}
+                        </p>
+                        {% if camera.ip_address %}
+                        <p class="mb-1">
+                            <i class="fas fa-network-wired text-muted"></i> 
+                            <strong>IP:</strong> {{ camera.ip_address }}:{{ camera.port }}
+                        </p>
+                        {% endif %}
+                        <p class="mb-1">
+                            <i class="fas fa-clock text-muted"></i> 
+                            <strong>Added:</strong> {{ moment(camera.created_at).format('MMM DD, YYYY') }}
+                        </p>
+                        {% if camera.last_seen %}
+                        <p class="mb-0">
+                            <i class="fas fa-eye text-muted"></i> 
+                            <strong>Last Seen:</strong> {{ moment(camera.last_seen).fromNow() }}
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="btn-group w-100" role="group">
+                        <a href="{{ url_for('camera_detail', camera_id=camera.id) }}" 
+                           class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-eye"></i> View
+                        </a>
+                        <form method="POST" action="{{ url_for('toggle_camera', camera_id=camera.id) }}" class="d-inline">
+                            <button type="submit" class="btn btn-outline-{{ 'warning' if camera.status == 'online' else 'success' }} btn-sm">
+                                <i class="fas fa-{{ 'pause' if camera.status == 'online' else 'play' }}"></i>
+                                {{ 'Disable' if camera.status == 'online' else 'Enable' }}
+                            </button>
+                        </form>
+                        <button type="button" class="btn btn-outline-danger btn-sm" 
+                                onclick="confirmDelete('{{ camera.name }}', '{{ url_for('delete_camera', camera_id=camera.id) }}')">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="text-center py-5">
+                <i class="fas fa-camera text-muted" style="font-size: 5rem;"></i>
+                <h4 class="mt-3 text-muted">No Cameras Added</h4>
+                <p class="text-muted mb-4">
+                    Start monitoring by adding your first security camera to the system.
+                </p>
+                <button class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#addCameraModal">
+                    <i class="fas fa-plus"></i> Add First Camera
+                </button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Add Camera Modal -->
+<div class="modal fade" id="addCameraModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-camera"></i> Add New Camera</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_camera') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Camera Name *</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                        <div class="form-text">Give your camera a descriptive name</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="location" class="form-label">Location *</label>
+                        <input type="text" class="form-control" id="location" name="location" required>
+                        <div class="form-text">Where is this camera located?</div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label for="ip_address" class="form-label">IP Address</label>
+                                <input type="text" class="form-control" id="ip_address" name="ip_address" 
+                                       placeholder="192.168.1.100">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="port" class="form-label">Port</label>
+                                <input type="number" class="form-control" id="port" name="port" 
+                                       value="554" min="1" max="65535">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Username</label>
+                                <input type="text" class="form-control" id="username" name="username">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Password</label>
+                                <input type="password" class="form-control" id="password" name="password">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Note:</strong> This is a demo system with mock camera feeds. 
+                        Actual camera integration would require additional configuration.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Add Camera
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger"><i class="fas fa-exclamation-triangle"></i> Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete camera "<span id="deleteCameraName"></span>"?</p>
+                <p class="text-muted">This action cannot be undone and will remove all associated alerts and data.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="POST" id="deleteForm" class="d-inline">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Delete Camera
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmDelete(cameraName, deleteUrl) {
+    document.getElementById('deleteCameraName').textContent = cameraName;
+    document.getElementById('deleteForm').action = deleteUrl;
+    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+}
+</script>
+{% endblock %}
