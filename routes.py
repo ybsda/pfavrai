@@ -223,29 +223,24 @@ def historique():
                 Equipement.client_id == current_user.client_id
             ).order_by(HistoriquePing.timestamp.desc())
         
-        try:
-            historique_pagine = historique_query.paginate(
-                page=page, per_page=per_page, error_out=False
-            )
-        except AttributeError:
-            # Fallback pour les versions plus anciennes de SQLAlchemy
-            from sqlalchemy import func
-            total = historique_query.count()
-            historique_items = historique_query.offset((page - 1) * per_page).limit(per_page).all()
-            
-            class MockPagination:
-                def __init__(self, items, page, per_page, total):
-                    self.items = items
-                    self.page = page
-                    self.per_page = per_page
-                    self.total = total
-                    self.pages = (total + per_page - 1) // per_page
-                    self.has_prev = page > 1
-                    self.has_next = page < self.pages
-                    self.prev_num = page - 1 if self.has_prev else None
-                    self.next_num = page + 1 if self.has_next else None
-            
-            historique_pagine = MockPagination(historique_items, page, per_page, total)
+        # Fallback pour SQLAlchemy avec pagination manuelle
+        from sqlalchemy import func
+        total = historique_query.count()
+        historique_items = historique_query.offset((page - 1) * per_page).limit(per_page).all()
+        
+        class MockPagination:
+            def __init__(self, items, page, per_page, total):
+                self.items = items
+                self.page = page
+                self.per_page = per_page
+                self.total = total
+                self.pages = (total + per_page - 1) // per_page if per_page > 0 else 1
+                self.has_prev = page > 1
+                self.has_next = page < self.pages
+                self.prev_num = page - 1 if self.has_prev else None
+                self.next_num = page + 1 if self.has_next else None
+        
+        historique_pagine = MockPagination(historique_items, page, per_page, total)
         
         return render_template('history.html', historique=historique_pagine)
     except Exception as e:
@@ -481,3 +476,219 @@ def api_equipements_status():
     except Exception as e:
         logger.error(f"Erreur dans api_equipements_status: {e}")
         return jsonify({'error': 'Erreur lors du chargement du statut des équipements'}), 500
+
+# Routes pour la création et modification de clients et équipements
+@app.route('/clients/add', methods=['GET', 'POST'])
+@login_required
+def add_client():
+    """Ajouter un nouveau client (admin seulement)"""
+    if current_user.role != 'admin':
+        flash('Accès refusé : réservé aux administrateurs.', 'error')
+        return redirect(url_for('dashboard'))
+    
+    if request.method == 'POST':
+        try:
+            nom = request.form.get('nom')
+            email = request.form.get('email')
+            adresse = request.form.get('adresse')
+            telephone = request.form.get('telephone')
+            
+            if not nom or not email:
+                flash('Le nom et l\'email sont obligatoires.', 'error')
+                return render_template('clients.html')
+            
+            # Vérifier si l'email existe déjà
+            if Client.query.filter_by(email=email, actif=True).first():
+                flash('Cette adresse email est déjà utilisée par un autre client.', 'error')
+                return render_template('clients.html')
+            
+            nouveau_client = Client()
+            nouveau_client.nom = nom
+            nouveau_client.email = email
+            nouveau_client.adresse = adresse
+            nouveau_client.telephone = telephone
+            
+            db.session.add(nouveau_client)
+            db.session.commit()
+            
+            flash(f'Client "{nom}" ajouté avec succès.', 'success')
+            logger.info(f'Nouveau client créé: {nom} par {current_user.nom_utilisateur}')
+            
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f'Erreur lors de la création du client: {e}')
+            flash('Une erreur est survenue lors de la création du client.', 'error')
+    
+    return redirect(url_for('clients'))
+
+@app.route('/clients/<int:client_id>/edit', methods=['POST'])
+@login_required
+def edit_client(client_id):
+    """Modifier un client (admin seulement)"""
+    if current_user.role != 'admin':
+        flash('Accès refusé : réservé aux administrateurs.', 'error')
+        return redirect(url_for('dashboard'))
+    
+    try:
+        client = Client.query.get(client_id)
+        if not client:
+            flash('Client non trouvé.', 'error')
+            return redirect(url_for('clients'))
+        
+        client.nom = request.form.get('nom', client.nom)
+        client.email = request.form.get('email', client.email)
+        client.adresse = request.form.get('adresse', client.adresse)
+        client.telephone = request.form.get('telephone', client.telephone)
+        
+        db.session.commit()
+        flash(f'Client "{client.nom}" modifié avec succès.', 'success')
+        logger.info(f'Client {client.nom} modifié par {current_user.nom_utilisateur}')
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f'Erreur lors de la modification du client {client_id}: {e}')
+        flash('Une erreur est survenue lors de la modification du client.', 'error')
+    
+    return redirect(url_for('clients'))
+
+@app.route('/clients/<int:client_id>/delete', methods=['POST'])
+@login_required
+def delete_client(client_id):
+    """Supprimer un client (admin seulement)"""
+    if current_user.role != 'admin':
+        flash('Accès refusé : réservé aux administrateurs.', 'error')
+        return redirect(url_for('dashboard'))
+    
+    try:
+        client = Client.query.get(client_id)
+        if not client:
+            flash('Client non trouvé.', 'error')
+            return redirect(url_for('clients'))
+        
+        client.actif = False  # Suppression logique
+        db.session.commit()
+        flash(f'Client "{client.nom}" supprimé avec succès.', 'success')
+        logger.info(f'Client {client.nom} supprimé par {current_user.nom_utilisateur}')
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f'Erreur lors de la suppression du client {client_id}: {e}')
+        flash('Une erreur est survenue lors de la suppression du client.', 'error')
+    
+    return redirect(url_for('clients'))
+
+@app.route('/equipements/add', methods=['GET', 'POST'])
+@login_required
+def add_equipement():
+    """Ajouter un nouvel équipement"""
+    if request.method == 'POST':
+        try:
+            nom = request.form.get('nom')
+            type_equipement = request.form.get('type_equipement')
+            adresse_ip = request.form.get('adresse_ip')
+            port = request.form.get('port', 80, type=int)
+            client_id = request.form.get('client_id', type=int)
+            
+            if not all([nom, type_equipement, adresse_ip]):
+                flash('Le nom, type et adresse IP sont obligatoires.', 'error')
+                return redirect(url_for('equipements'))
+            
+            # Vérifier les permissions
+            if current_user.role == 'client':
+                if client_id != current_user.client_id:
+                    flash('Vous ne pouvez ajouter des équipements que pour votre client.', 'error')
+                    return redirect(url_for('equipements'))
+                client_id = current_user.client_id
+            elif current_user.role == 'admin':
+                if not client_id:
+                    flash('Veuillez sélectionner un client.', 'error')
+                    return redirect(url_for('equipements'))
+            
+            # Vérifier si l'IP existe déjà pour ce client
+            if Equipement.query.filter_by(adresse_ip=adresse_ip, client_id=client_id, actif=True).first():
+                flash('Cette adresse IP est déjà utilisée pour ce client.', 'error')
+                return redirect(url_for('equipements'))
+            
+            nouvel_equipement = Equipement()
+            nouvel_equipement.nom = nom
+            nouvel_equipement.type_equipement = type_equipement
+            nouvel_equipement.adresse_ip = adresse_ip
+            nouvel_equipement.port = port
+            nouvel_equipement.client_id = client_id
+            
+            db.session.add(nouvel_equipement)
+            db.session.commit()
+            
+            flash(f'Équipement "{nom}" ajouté avec succès.', 'success')
+            logger.info(f'Nouvel équipement créé: {nom} ({adresse_ip}) par {current_user.nom_utilisateur}')
+            
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f'Erreur lors de la création de l\'équipement: {e}')
+            flash('Une erreur est survenue lors de la création de l\'équipement.', 'error')
+    
+    return redirect(url_for('equipements'))
+
+@app.route('/equipements/<int:equipement_id>/edit', methods=['POST'])
+@login_required
+def edit_equipement(equipement_id):
+    """Modifier un équipement"""
+    try:
+        equipement = Equipement.query.get(equipement_id)
+        if not equipement:
+            flash('Équipement non trouvé.', 'error')
+            return redirect(url_for('equipements'))
+        
+        # Vérifier les permissions
+        if current_user.role == 'client' and equipement.client_id != current_user.client_id:
+            flash('Vous ne pouvez modifier que vos propres équipements.', 'error')
+            return redirect(url_for('equipements'))
+        
+        equipement.nom = request.form.get('nom', equipement.nom)
+        equipement.type_equipement = request.form.get('type_equipement', equipement.type_equipement)
+        equipement.adresse_ip = request.form.get('adresse_ip', equipement.adresse_ip)
+        equipement.port = request.form.get('port', equipement.port, type=int)
+        
+        # Seuls les admins peuvent changer le client
+        if current_user.role == 'admin':
+            new_client_id = request.form.get('client_id', type=int)
+            if new_client_id:
+                equipement.client_id = new_client_id
+        
+        db.session.commit()
+        flash(f'Équipement "{equipement.nom}" modifié avec succès.', 'success')
+        logger.info(f'Équipement {equipement.nom} modifié par {current_user.nom_utilisateur}')
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f'Erreur lors de la modification de l\'équipement {equipement_id}: {e}')
+        flash('Une erreur est survenue lors de la modification de l\'équipement.', 'error')
+    
+    return redirect(url_for('equipements'))
+
+@app.route('/equipements/<int:equipement_id>/delete', methods=['POST'])
+@login_required
+def delete_equipement(equipement_id):
+    """Supprimer un équipement"""
+    try:
+        equipement = Equipement.query.get(equipement_id)
+        if not equipement:
+            flash('Équipement non trouvé.', 'error')
+            return redirect(url_for('equipements'))
+        
+        # Vérifier les permissions
+        if current_user.role == 'client' and equipement.client_id != current_user.client_id:
+            flash('Vous ne pouvez supprimer que vos propres équipements.', 'error')
+            return redirect(url_for('equipements'))
+        
+        equipement.actif = False  # Suppression logique
+        db.session.commit()
+        flash(f'Équipement "{equipement.nom}" supprimé avec succès.', 'success')
+        logger.info(f'Équipement {equipement.nom} supprimé par {current_user.nom_utilisateur}')
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f'Erreur lors de la suppression de l\'équipement {equipement_id}: {e}')
+        flash('Une erreur est survenue lors de la suppression de l\'équipement.', 'error')
+    
+    return redirect(url_for('equipements'))

@@ -10,6 +10,20 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### 2025-08-16 - Agent to Replit Migration Completed
+- Successfully migrated camera monitoring system from Replit Agent to standard Replit environment
+- Fixed SQLAlchemy pagination compatibility issues for PostgreSQL
+- Added missing CRUD routes for clients and equipment management:
+  - `/clients/add` - Create new clients (admin only)
+  - `/clients/<id>/edit` - Modify existing clients (admin only)
+  - `/clients/<id>/delete` - Delete clients (admin only)
+  - `/equipements/add` - Create new equipment (with role-based permissions)
+  - `/equipements/<id>/edit` - Modify equipment (with role-based permissions)
+  - `/equipements/<id>/delete` - Delete equipment (with role-based permissions)
+- Created PostgreSQL database with proper environment configuration
+- Set up test admin user (admin/admin) for immediate access
+- Application now runs cleanly on Replit with all functionality working
+
 ### 2025-08-07 - Complete Migration to Replit
 - Successfully migrated complete French camera monitoring system from Windows to Replit
 - Preserved original local authentication system (not Replit Auth as initially planned)
