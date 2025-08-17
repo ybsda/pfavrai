@@ -83,7 +83,7 @@
                                             <td>
                                                 <button type="button" 
                                                         class="btn btn-sm btn-outline-primary"
-                                                        onclick="testerConnexion({{ equipement.id }})"
+                                                        onclick="testerConnexion('{{ equipement.id }}')"
                                                         title="Tester la connexion">
                                                     <i class="fas fa-plug"></i>
                                                 </button>
@@ -121,7 +121,7 @@
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form method="POST" action="{{ url_for('ajouter_equipement') }}">
+            <form method="POST" action="{{ url_for('add_equipement') }}">
                 <div class="modal-body">
                     <div class="mb-3">
                         <label for="nom" class="form-label">Nom de l'équipement *</label>
