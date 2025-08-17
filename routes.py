@@ -345,11 +345,21 @@ def admin_users():
     
     try:
         users_list = User.query.filter_by(actif=True).all()
-        return render_template('admin_users.html', users=users_list)
+        
+        # Calculer les statistiques
+        stats = {
+            'total': len(users_list),
+            'en_attente': len([u for u in users_list if u.statut == 'en_attente']),
+            'approuves': len([u for u in users_list if u.statut == 'approuve']),
+            'refuses': len([u for u in users_list if u.statut == 'refuse'])
+        }
+        
+        return render_template('admin_users.html', users=users_list, stats=stats)
     except Exception as e:
         logger.error(f"Erreur dans admin_users: {e}")
         flash(f"Erreur lors du chargement des utilisateurs: {e}", "error")
-        return render_template('admin_users.html', users=[])
+        stats = {'total': 0, 'en_attente': 0, 'approuves': 0, 'refuses': 0}
+        return render_template('admin_users.html', users=[], stats=stats)
 
 @app.route('/admin/users/<int:user_id>/approve', methods=['POST'])
 @login_required
